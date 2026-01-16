@@ -7,7 +7,7 @@ import {
   createUserWithEmailAndPassword,
   onAuthStateChanged,
   signInWithEmailAndPassword,
-  signInWithPopup,
+  signInWithRedirect,
   signOut
 } from 'firebase/auth';
 import { defaultPlan } from '../data/defaultPlan';
@@ -172,7 +172,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   signInWithGoogle: async () => {
     const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
+    await signInWithRedirect(auth, provider);
   },
   signOutUser: async () => {
     await signOut(auth);
