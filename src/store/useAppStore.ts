@@ -5,6 +5,7 @@ import { loadCloudState, saveCloudState } from '../lib/cloud';
 import {
   GoogleAuthProvider,
   createUserWithEmailAndPassword,
+  getRedirectResult,
   onAuthStateChanged,
   signInWithEmailAndPassword,
   signInWithRedirect,
@@ -155,6 +156,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ plan, settings, logs, hydrated: true });
   },
   initAuth: () => {
+    void getRedirectResult(auth);
     onAuthStateChanged(auth, async (user) => {
       if (user) {
         set({ user: { uid: user.uid, email: user.email }, syncStatus: 'syncing' });
