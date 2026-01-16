@@ -2,7 +2,14 @@ import { create } from 'zustand';
 import { loadFromStorage, saveToStorage } from '../lib/storage';
 import { auth } from '../lib/firebase';
 import { loadCloudState, saveCloudState } from '../lib/cloud';
-import { createUserWithEmailAndPassword, onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import {
+  GoogleAuthProvider,
+  createUserWithEmailAndPassword,
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  signOut
+} from 'firebase/auth';
 import { defaultPlan } from '../data/defaultPlan';
 import { toDateISO } from '../lib/date';
 
@@ -97,6 +104,7 @@ interface AppState {
   initAuth: () => void;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
   signOutUser: () => Promise<void>;
   syncFromCloud: () => Promise<void>;
   pushToCloud: () => Promise<void>;
@@ -161,6 +169,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   signUp: async (email, password) => {
     await createUserWithEmailAndPassword(auth, email, password);
+  },
+  signInWithGoogle: async () => {
+    const provider = new GoogleAuthProvider();
+    await signInWithPopup(auth, provider);
   },
   signOutUser: async () => {
     await signOut(auth);

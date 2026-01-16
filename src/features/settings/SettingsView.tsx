@@ -24,8 +24,20 @@ function minutesToTime(totalMinutes: number) {
 }
 
 export function SettingsView() {
-  const { settings, updateSettings, plan, updatePlan, logs, user, syncStatus, signIn, signUp, signOutUser, pushToCloud } =
-    useAppStore();
+  const {
+    settings,
+    updateSettings,
+    plan,
+    updatePlan,
+    logs,
+    user,
+    syncStatus,
+    signIn,
+    signUp,
+    signInWithGoogle,
+    signOutUser,
+    pushToCloud
+  } = useAppStore();
   const pushToast = useToastStore((state) => state.push);
   const [error, setError] = useState<string | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
@@ -273,6 +285,9 @@ export function SettingsView() {
               </Button>
               <Button variant="ghost" onClick={() => void handleSignUp()}>
                 Înregistrare
+              </Button>
+              <Button variant="secondary" onClick={() => void signInWithGoogle()}>
+                Continuă cu Google
               </Button>
             </div>
           </div>
