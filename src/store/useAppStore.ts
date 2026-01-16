@@ -1,5 +1,8 @@
 import { create } from 'zustand';
 import { loadFromStorage, saveToStorage } from '../lib/storage';
+import { auth } from '../lib/firebase';
+import { loadCloudState, saveCloudState } from '../lib/cloud';
+import { createUserWithEmailAndPassword, onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { defaultPlan } from '../data/defaultPlan';
 import { toDateISO } from '../lib/date';
 
@@ -76,13 +79,27 @@ export interface Settings {
   theme: 'light' | 'dark';
 }
 
+export interface AuthUser {
+  uid: string;
+  email: string | null;
+}
+
 interface AppState {
   plan: UserPlan;
   settings: Settings;
   logs: Record<string, DailyLog>;
   selectedDateISO: string;
   hydrated: boolean;
+  user: AuthUser | null;
+  syncStatus: 'offline' | 'syncing' | 'synced' | 'error';
+  lastSyncAtISO?: string;
   hydrate: () => Promise<void>;
+  initAuth: () => void;
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string) => Promise<void>;
+  signOutUser: () => Promise<void>;
+  syncFromCloud: () => Promise<void>;
+  pushToCloud: () => Promise<void>;
   setSelectedDate: (dateISO: string) => void;
   updateSettings: (partial: Partial<Settings>) => void;
   updatePlan: (plan: UserPlan) => void;
@@ -119,6 +136,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   logs: {},
   selectedDateISO: toDateISO(new Date()),
   hydrated: false,
+  user: null,
+  syncStatus: 'offline',
   hydrate: async () => {
     const [plan, settings, logs] = await Promise.all([
       loadFromStorage<UserPlan>(STORAGE_PLAN, defaultPlan),
@@ -127,15 +146,79 @@ export const useAppStore = create<AppState>((set, get) => ({
     ]);
     set({ plan, settings, logs, hydrated: true });
   },
+  initAuth: () => {
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        set({ user: { uid: user.uid, email: user.email }, syncStatus: 'syncing' });
+        await get().syncFromCloud();
+      } else {
+        set({ user: null, syncStatus: 'offline' });
+      }
+    });
+  },
+  signIn: async (email, password) => {
+    await signInWithEmailAndPassword(auth, email, password);
+  },
+  signUp: async (email, password) => {
+    await createUserWithEmailAndPassword(auth, email, password);
+  },
+  signOutUser: async () => {
+    await signOut(auth);
+    set({ user: null, syncStatus: 'offline' });
+  },
+  syncFromCloud: async () => {
+    const user = get().user;
+    if (!user) return;
+    set({ syncStatus: 'syncing' });
+    try {
+      const cloud = await loadCloudState(user.uid);
+      if (cloud) {
+        set({
+          plan: cloud.plan,
+          settings: cloud.settings,
+          logs: cloud.logs,
+          selectedDateISO: cloud.plan.startDateISO,
+          syncStatus: 'synced',
+          lastSyncAtISO: cloud.updatedAtISO
+        });
+        await Promise.all([
+          saveToStorage(STORAGE_PLAN, cloud.plan),
+          saveToStorage(STORAGE_SETTINGS, cloud.settings),
+          saveToStorage(STORAGE_LOGS, cloud.logs)
+        ]);
+      } else {
+        await get().pushToCloud();
+      }
+    } catch {
+      set({ syncStatus: 'error' });
+    }
+  },
+  pushToCloud: async () => {
+    const user = get().user;
+    if (!user) return;
+    set({ syncStatus: 'syncing' });
+    try {
+      await saveCloudState(user.uid, {
+        plan: get().plan,
+        settings: get().settings,
+        logs: get().logs
+      });
+      set({ syncStatus: 'synced', lastSyncAtISO: new Date().toISOString() });
+    } catch {
+      set({ syncStatus: 'error' });
+    }
+  },
   setSelectedDate: (dateISO) => set({ selectedDateISO: dateISO }),
   updateSettings: (partial) => {
     const next = { ...get().settings, ...partial };
     set({ settings: next });
     void saveToStorage(STORAGE_SETTINGS, next);
+    void get().pushToCloud();
   },
   updatePlan: (plan) => {
     set({ plan });
     void saveToStorage(STORAGE_PLAN, plan);
+    void get().pushToCloud();
   },
   updateLog: (dateISO, partial) => {
     const current = get().logs[dateISO];
@@ -154,19 +237,23 @@ export const useAppStore = create<AppState>((set, get) => ({
     const nextLogs = { ...get().logs, [dateISO]: next };
     set({ logs: nextLogs });
     void saveToStorage(STORAGE_LOGS, nextLogs);
+    void get().pushToCloud();
   },
   removeLog: (dateISO) => {
     const nextLogs = { ...get().logs };
     delete nextLogs[dateISO];
     set({ logs: nextLogs });
     void saveToStorage(STORAGE_LOGS, nextLogs);
+    void get().pushToCloud();
   },
   resetPlan: () => {
     set({ plan: defaultPlan });
     void saveToStorage(STORAGE_PLAN, defaultPlan);
+    void get().pushToCloud();
   },
   resetLogs: () => {
     set({ logs: {}, selectedDateISO: get().plan.startDateISO });
     void saveToStorage(STORAGE_LOGS, {});
+    void get().pushToCloud();
   }
 }));

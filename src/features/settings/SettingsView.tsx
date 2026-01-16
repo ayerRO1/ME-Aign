@@ -24,9 +24,13 @@ function minutesToTime(totalMinutes: number) {
 }
 
 export function SettingsView() {
-  const { settings, updateSettings, plan, updatePlan, logs } = useAppStore();
+  const { settings, updateSettings, plan, updatePlan, logs, user, syncStatus, signIn, signUp, signOutUser, pushToCloud } =
+    useAppStore();
   const pushToast = useToastStore((state) => state.push);
   const [error, setError] = useState<string | null>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
   const mealTimes = useMemo(() => {
     const masa1 = plan.days[0]?.masa1.oraImplicita ?? settings.eatingWindowStart;
@@ -148,6 +152,26 @@ export function SettingsView() {
     }
   };
 
+  const handleSignIn = async () => {
+    setAuthError(null);
+    try {
+      await signIn(email, password);
+      pushToast('Autentificat');
+    } catch {
+      setAuthError('Autentificare eșuată.');
+    }
+  };
+
+  const handleSignUp = async () => {
+    setAuthError(null);
+    try {
+      await signUp(email, password);
+      pushToast('Cont creat');
+    } catch {
+      setAuthError('Înregistrare eșuată.');
+    }
+  };
+
   return (
     <div className="space-y-4">
       <header>
@@ -212,6 +236,47 @@ export function SettingsView() {
           />
         </div>
         {error ? <p className="mt-2 text-xs text-[color:var(--color-warning)]">{error}</p> : null}
+      </Card>
+
+      <Card>
+        <p className="text-sm text-[color:var(--color-muted)]">Sincronizare cloud</p>
+        {user ? (
+          <div className="mt-3 space-y-3">
+            <p className="text-sm">
+              Conectat ca <span className="font-semibold">{user.email ?? 'utilizator'}</span>
+            </p>
+            <p className="text-xs text-[color:var(--color-muted)]">Status: {syncStatus}</p>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="secondary" onClick={() => void pushToCloud()}>
+                Sincronizează acum
+              </Button>
+              <Button variant="ghost" onClick={() => void signOutUser()}>
+                Deconectează
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-3 space-y-3">
+            <div className="grid gap-3 md:grid-cols-2">
+              <Input label="Email" value={email} onChange={(event) => setEmail(event.target.value)} />
+              <Input
+                label="Parolă"
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+              />
+            </div>
+            {authError ? <p className="text-xs text-[color:var(--color-warning)]">{authError}</p> : null}
+            <div className="flex flex-wrap gap-2">
+              <Button variant="secondary" onClick={() => void handleSignIn()}>
+                Autentificare
+              </Button>
+              <Button variant="ghost" onClick={() => void handleSignUp()}>
+                Înregistrare
+              </Button>
+            </div>
+          </div>
+        )}
       </Card>
 
       <Card>

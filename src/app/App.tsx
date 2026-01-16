@@ -20,11 +20,15 @@ type TabId = (typeof tabs)[number]['id'];
 
 export function App() {
   const [activeTab, setActiveTab] = useState<TabId>('today');
-  const { hydrate, hydrated, settings, setSelectedDate } = useAppStore();
+  const { hydrate, hydrated, settings, setSelectedDate, initAuth } = useAppStore();
 
   useEffect(() => {
     void hydrate();
   }, [hydrate]);
+
+  useEffect(() => {
+    initAuth();
+  }, [initAuth]);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', settings.theme);
