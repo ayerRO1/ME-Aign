@@ -10,6 +10,7 @@ import {
   onAuthStateChanged,
   setPersistence,
   signInWithEmailAndPassword,
+  signInWithPopup,
   signInWithRedirect,
   signOut
 } from 'firebase/auth';
@@ -159,9 +160,16 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   initAuth: () => {
     void setPersistence(auth, browserLocalPersistence);
-    void getRedirectResult(auth).catch(() => {
-      set({ syncStatus: 'error' });
-    });
+    void getRedirectResult(auth)
+      .then((result) => {
+        if (result?.user) {
+          set({ user: { uid: result.user.uid, email: result.user.email }, syncStatus: 'syncing' });
+          void get().syncFromCloud();
+        }
+      })
+      .catch(() => {
+        set({ syncStatus: 'error' });
+      });
     onAuthStateChanged(auth, async (user) => {
       if (user) {
         set({ user: { uid: user.uid, email: user.email }, syncStatus: 'syncing' });
@@ -179,7 +187,15 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   signInWithGoogle: async () => {
     const provider = new GoogleAuthProvider();
-    await signInWithRedirect(auth, provider);
+    try {
+      const result = await signInWithPopup(auth, provider);
+      if (result.user) {
+        set({ user: { uid: result.user.uid, email: result.user.email }, syncStatus: 'syncing' });
+        await get().syncFromCloud();
+      }
+    } catch {
+      await signInWithRedirect(auth, provider);
+    }
   },
   signOutUser: async () => {
     await signOut(auth);
