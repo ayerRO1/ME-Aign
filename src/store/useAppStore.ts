@@ -4,9 +4,11 @@ import { auth } from '../lib/firebase';
 import { loadCloudState, saveCloudState } from '../lib/cloud';
 import {
   GoogleAuthProvider,
+  browserLocalPersistence,
   createUserWithEmailAndPassword,
   getRedirectResult,
   onAuthStateChanged,
+  setPersistence,
   signInWithEmailAndPassword,
   signInWithRedirect,
   signOut
@@ -156,7 +158,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ plan, settings, logs, hydrated: true });
   },
   initAuth: () => {
-    void getRedirectResult(auth);
+    void setPersistence(auth, browserLocalPersistence);
+    void getRedirectResult(auth).catch(() => {
+      set({ syncStatus: 'error' });
+    });
     onAuthStateChanged(auth, async (user) => {
       if (user) {
         set({ user: { uid: user.uid, email: user.email }, syncStatus: 'syncing' });
