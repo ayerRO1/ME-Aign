@@ -4,12 +4,12 @@ import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
 import { Checkbox } from '../../components/ui/Checkbox';
 import { Icon } from '../../components/ui/Icon';
-import { useAppStore } from '../../store/useAppStore';
+import { DailyLog, useAppStore } from '../../store/useAppStore';
 import { addDays, formatShortDate, fromDateISO, getMonthDays, getWeekdayIndex, toDateISO } from '../../lib/date';
 import { calcCompletionPercent, calcDailyCompletion, calcStreaks, countCompleteDays, getPlanDayForDate, isDayComplete } from '../../lib/metrics';
 
 export function CalendarView() {
-  const { logs, plan, setSelectedDate } = useAppStore();
+  const { logs, setSelectedDate } = useAppStore();
   const [cursor, setCursor] = useState(new Date());
   const [modalDate, setModalDate] = useState<string | null>(null);
   const streaks = useMemo(() => calcStreaks(logs), [logs]);
@@ -170,21 +170,9 @@ export function CalendarView() {
   );
 }
 
-function buildHeatmap(
-  logs: Record<
-    string,
-    {
-      dateISO: string;
-      masa1Done: boolean;
-      masa2Done: boolean;
-      suplimente: { magneziu: boolean; vitaminaD: boolean; omega3: boolean };
-      miscareDone: boolean;
-    }
-  >,
-  days: number
-) {
+function buildHeatmap(logs: Record<string, DailyLog | undefined>, days: number) {
   const today = new Date();
-  const entries = [] as { dateISO: string; percent: number; color: string }[];
+  const entries = [] as { dateISO: string; percent: number; background: string }[];
   for (let i = days - 1; i >= 0; i -= 1) {
     const date = new Date(today.getFullYear(), today.getMonth(), today.getDate() - i);
     const dateISO = toDateISO(date);

@@ -9,7 +9,7 @@ import { Icon } from '../../components/ui/Icon';
 import { useAppStore } from '../../store/useAppStore';
 import { addDays, formatLongDate, fromDateISO, getWeekdayIndex, toDateISO } from '../../lib/date';
 import { calcDailyCompletion, calcStreaks, getPlanDayForDate } from '../../lib/metrics';
-import { getReminderStatus, requestNotificationPermission, scheduleOneOffNotification } from '../../lib/notifications';
+import { getReminderStatus, scheduleOneOffNotification } from '../../lib/notifications';
 import { useToastStore } from '../../store/useToastStore';
 
 const movementPresets = [
@@ -63,13 +63,6 @@ export function TodayView() {
   useEffect(() => {
     setNotes(log?.notes ?? '');
   }, [log?.notes, selectedDateISO]);
-
-  const handlePermission = async () => {
-    const result = await requestNotificationPermission();
-    if (result === 'granted') {
-      pushToast('Notificări activate');
-    }
-  };
 
   const handleQuickComplete = () => {
     updateLog(selectedDateISO, {
