@@ -196,7 +196,7 @@ export const useAppStore = create<AppState>((set, get) => ({
           plan: cloud.plan,
           settings: cloud.settings,
           logs: cloud.logs,
-          selectedDateISO: cloud.plan.startDateISO,
+          selectedDateISO: toDateISO(new Date()),
           syncStatus: 'synced',
           lastSyncAtISO: cloud.updatedAtISO
         });
