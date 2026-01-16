@@ -155,7 +155,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       loadFromStorage<Settings>(STORAGE_SETTINGS, defaultSettings),
       loadFromStorage<Record<string, DailyLog>>(STORAGE_LOGS, {})
     ]);
-    set({ plan, settings, logs, hydrated: true });
+    set({ plan, settings, logs, hydrated: true, selectedDateISO: toDateISO(new Date()) });
   },
   initAuth: () => {
     void setPersistence(auth, browserLocalPersistence);
