@@ -102,6 +102,7 @@ interface AppState {
   selectedDateISO: string;
   hydrated: boolean;
   user: AuthUser | null;
+  authError?: string;
   syncStatus: 'offline' | 'syncing' | 'synced' | 'error';
   lastSyncAtISO?: string;
   hydrate: () => Promise<void>;
@@ -149,6 +150,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   selectedDateISO: toDateISO(new Date()),
   hydrated: false,
   user: null,
+  authError: undefined,
   syncStatus: 'offline',
   hydrate: async () => {
     const [plan, settings, logs] = await Promise.all([
@@ -163,16 +165,17 @@ export const useAppStore = create<AppState>((set, get) => ({
     void getRedirectResult(auth)
       .then((result) => {
         if (result?.user) {
-          set({ user: { uid: result.user.uid, email: result.user.email }, syncStatus: 'syncing' });
+          set({ user: { uid: result.user.uid, email: result.user.email }, syncStatus: 'syncing', authError: undefined });
           void get().syncFromCloud();
         }
       })
-      .catch(() => {
-        set({ syncStatus: 'error' });
+      .catch((error) => {
+        const code = (error as { code?: string }).code ?? 'auth-error';
+        set({ syncStatus: 'error', authError: String(code) });
       });
     onAuthStateChanged(auth, async (user) => {
       if (user) {
-        set({ user: { uid: user.uid, email: user.email }, syncStatus: 'syncing' });
+        set({ user: { uid: user.uid, email: user.email }, syncStatus: 'syncing', authError: undefined });
         await get().syncFromCloud();
       } else {
         set({ user: null, syncStatus: 'offline' });
@@ -190,10 +193,12 @@ export const useAppStore = create<AppState>((set, get) => ({
     try {
       const result = await signInWithPopup(auth, provider);
       if (result.user) {
-        set({ user: { uid: result.user.uid, email: result.user.email }, syncStatus: 'syncing' });
+        set({ user: { uid: result.user.uid, email: result.user.email }, syncStatus: 'syncing', authError: undefined });
         await get().syncFromCloud();
       }
-    } catch {
+    } catch (error) {
+      const code = (error as { code?: string }).code ?? 'auth-error';
+      set({ authError: String(code), syncStatus: 'error' });
       await signInWithRedirect(auth, provider);
     }
   },

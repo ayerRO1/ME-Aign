@@ -31,6 +31,12 @@ export function TodayView() {
   const todayISO = toDateISO(new Date());
   const [showShopping, setShowShopping] = useState(false);
 
+  useEffect(() => {
+    if (selectedDateISO !== todayISO) {
+      setSelectedDate(todayISO);
+    }
+  }, [selectedDateISO, setSelectedDate, todayISO]);
+
   const shoppingData = useMemo(() => {
     const baseDate = fromDateISO(selectedDateISO);
     const weekdayIndex = getWeekdayIndex(baseDate);

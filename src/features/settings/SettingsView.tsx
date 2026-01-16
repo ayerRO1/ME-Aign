@@ -32,6 +32,7 @@ export function SettingsView() {
     logs,
     user,
     syncStatus,
+    authError,
     signIn,
     signUp,
     signInWithGoogle,
